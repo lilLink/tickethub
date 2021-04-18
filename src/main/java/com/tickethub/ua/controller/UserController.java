@@ -1,53 +1,50 @@
 package com.tickethub.ua.controller;
 
-import com.tickethub.ua.models.ConfirmationToken;
+import com.tickethub.ua.models.Ticket;
 import com.tickethub.ua.models.User;
-import com.tickethub.ua.service.ConfirmationTokenService;
+import com.tickethub.ua.service.EmailSenderService;
+import com.tickethub.ua.service.TicketService;
 import com.tickethub.ua.service.UserService;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-
-import java.util.Optional;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Controller
-@AllArgsConstructor
+@RestController
+@RequestMapping("/user")
 public class UserController {
 
-    private final UserService userService;
+    @Autowired
+    private UserService userService;
 
-    private final ConfirmationTokenService confirmationTokenService;
+    @Autowired
+    private EmailSenderService emailSenderService;
 
-    @GetMapping("/sign-in")
-    String signIn() {
+    @Autowired
+    private TicketService ticketService;
 
-        return "sign-in";
-    }
+    @GetMapping
+    public ResponseEntity<Ticket> sendTicket(@PathVariable("id") Ticket ticket, User user){
+        ticketService.findById(ticket.getTicketId());
 
-    @GetMapping("/sign-up")
-    String signUp() {
 
-        return "sign-up";
-    }
+        final SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setTo(user.getEmail());
+        mailMessage.setSubject("Ticket");
+        mailMessage.setFrom("vaduk2000@gmail.com");
+        mailMessage.setText(
+                "Thank you for registering."
+                        + user.getFirstName() + " " + user.getLastName() + " Date start: " + ticket.getBeginTime()
+                        + "Date end: " + ticket.getEndTime() + "From city: " + ticket.getFromCity() + "To city: " + ticket.getToCity());
 
-    @PostMapping("/sign-up")
-    String signUp(User user) {
-
-        userService.signUpUser(user);
-
-        return "redirect:/sign-in";
-    }
-
-    @GetMapping("/confirm")
-    String confirmMail(@RequestParam("token") String token) {
-
-        Optional<ConfirmationToken> optionalConfirmationToken = confirmationTokenService.findConfirmationTokenByToken(token);
-
-        optionalConfirmationToken.ifPresent(userService::confirmUser);
-
-        return "/sign-in";
+       emailSenderService.sendEmail(mailMessage);
+       return ResponseEntity.ok().body(ticket);
     }
 
 }

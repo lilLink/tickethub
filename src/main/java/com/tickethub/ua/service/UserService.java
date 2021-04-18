@@ -1,6 +1,5 @@
 package com.tickethub.ua.service;
 
-import com.tickethub.ua.models.ConfirmationToken;
 import com.tickethub.ua.models.User;
 import com.tickethub.ua.repository.UserRepository;
 import lombok.AllArgsConstructor;
@@ -12,71 +11,56 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 @AllArgsConstructor
-public class UserService implements UserDetailsService {
+@Transactional
+public class UserService implements AbstractService<User>{
 
     @Autowired
-    private final UserRepository userRepository;
-
-    @Autowired
-    private ConfirmationTokenService confirmationTokenService;
+    private UserRepository userRepository;
 
     @Autowired
     private EmailSenderService emailSenderService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    @Override
+    public User findById(Long id) {
+        return userRepository.getOne(id);
+    }
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-
-        final Optional<User> optionalUser = userRepository.findByEmail(email);
-
-        if (optionalUser.isPresent()) {
-            return optionalUser.get();
-        }
-        else {
-            throw new UsernameNotFoundException(MessageFormat.format("User with email {0} cannot be found.", email));
-        }
+    public List<User> findAll() {
+        return userRepository.findAll();
     }
 
-    public void signUpUser(User user) {
-
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-        final User createdUser = userRepository.save(user);
-
-        final ConfirmationToken confirmationToken = new ConfirmationToken(user);
-
-        confirmationTokenService.saveConfirmationToken(confirmationToken);
-
+    @Override
+    public User create(User user) {
+        return userRepository.save(user);
     }
 
-    public void confirmUser(ConfirmationToken confirmationToken) {
-
-        final User user = confirmationToken.getUser();
-
-        user.setEnabled(true);
-
-        userRepository.save(user);
-
-        confirmationTokenService.deleteConfirmationToken(confirmationToken.getId());
-
+    @Override
+    public User update(User user) {
+        return userRepository.save(user);
     }
 
-    public void sendConfirmationMail(String userMail, String token) {
+    @Override
+    public void deleteById(Long id) {
+        userRepository.deleteById(id);
+    }
+
+    public void sendConfirmationMail(User user) {
 
         final SimpleMailMessage mailMessage = new SimpleMailMessage();
-        mailMessage.setTo(userMail);
-        mailMessage.setSubject("Mail Confirmation Link!");
+        mailMessage.setTo(user.getEmail());
+        mailMessage.setSubject("Ticket");
         mailMessage.setFrom("vaduk2000@gmail.com");
         mailMessage.setText(
-                "Thank you for registering. Please click on the below link to activate your account." + "http://localhost:8080/sign-up/confirm?token="
-                        + token);
+                "Thank you for registering."
+                        + user.getFirstName() + " " + user.getLastName() + " Date ");
 
         emailSenderService.sendEmail(mailMessage);
     }
