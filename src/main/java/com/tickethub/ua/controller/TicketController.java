@@ -12,7 +12,7 @@ import java.util.List;
 @Controller
 @RestController
 @RequestMapping("ticket")
-@CrossOrigin
+@CrossOrigin(origins = "http://localhost:4200")
 public class TicketController {
 
     @Autowired

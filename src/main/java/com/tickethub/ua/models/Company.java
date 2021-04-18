@@ -28,6 +28,8 @@ public class Company {
 
     private String phoneNumber;
 
+    private String typeCompany;
+
     @OneToMany(mappedBy = "company", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<Ticket> ticketList;
 }
